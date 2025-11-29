@@ -3,7 +3,10 @@ const jwt = require('jsonwebtoken');
 const UserModel = require("../Models/User");
 
 
+
+
 const signup = async (req, res) => {
+    console.log("HIT /auth/signup", req.body);   // Log request arriving
     try {
         const { name, email, password } = req.body;
         const user = await UserModel.findOne({ email });
@@ -30,6 +33,7 @@ const signup = async (req, res) => {
 
 
 const login = async (req, res) => {
+    console.log("HIT /auth/login", req.body);    // Log request arriving
     try {
         const { email, password } = req.body;
         const user = await UserModel.findOne({ email });

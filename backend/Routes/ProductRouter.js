@@ -1,19 +1,21 @@
-const ensureAuthenticated = require('../Middlewares/Auth');
-
 const router = require('express').Router();
+const ensureAuthenticated = require('../Middlewares/Auth');
+const ProductModel = require('../Models/Product');
 
-router.get('/', ensureAuthenticated, (req, res) => {
-    console.log('---- logged in user detail ---', req.user);
-    res.status(200).json([
-        {
-            name: "mobile",
-            price: 10000
-        },
-        {
-            name: "tv",
-            price: 20000
+router.get('/', ensureAuthenticated, async (req, res) => {
+    try {
+        const products = await ProductModel.find();
+        console.log("Products fetched:", products);
+
+        if (!products.length) {
+            return res.status(200).json([]);  // empty array, no error
         }
-    ])
+
+        res.status(200).json(products);
+    } catch (err) {
+        console.error("Get products error:", err);
+        res.status(500).json({ message: "Failed to fetch products" });
+    }
 });
 
 module.exports = router;
