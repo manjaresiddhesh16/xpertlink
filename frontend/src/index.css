@@ -1,5 +1,4 @@
-
-*,
+*, 
 ::before,
 ::after{
   box-sizing: border-box;
@@ -17,11 +16,12 @@ body{
   width: 100%;
 }
 
+
 body{
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  /* remove flex centering – let App.css control layout */
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
+
 
 .container{
   background-color: #FFF;

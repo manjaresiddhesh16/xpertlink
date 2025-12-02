@@ -8,13 +8,11 @@ const UserModel = require("../Models/User");
 const signup = async (req, res) => {
     console.log("HIT /auth/signup", req.body);   // Log request arriving
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role = 'learner' } = req.body;
         const user = await UserModel.findOne({ email });
-        if (user) {
-            return res.status(409)
-                .json({ message: 'User is already exist, you can login', success: false });
-        }
-        const userModel = new UserModel({ name, email, password });
+        // ...
+        const userModel = new UserModel({ name, email, password, role });
+
         userModel.password = await bcrypt.hash(password, 10);
         await userModel.save();
         res.status(201)
@@ -48,19 +46,21 @@ const login = async (req, res) => {
                 .json({ message: errorMsg, success: false });
         }
         const jwtToken = jwt.sign(
-            { email: user.email, _id: user._id },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        )
+  { email: user.email, _id: user._id, role: user.role },
+  process.env.JWT_SECRET,
+  { expiresIn: '24h' }
+)
 
-        res.status(200)
-            .json({
-                message: "Login Success",
-                success: true,
-                jwtToken,
-                email,
-                name: user.name
-            })
+
+        res.status(200).json({
+  message: "Login Success",
+  success: true,
+  jwtToken,
+  email,
+  name: user.name,
+  role: user.role
+})
+
     } catch (err) {
         res.status(500)
             .json({
