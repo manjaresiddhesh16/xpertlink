@@ -8,8 +8,12 @@ function Signup() {
   name: '',
   email: '',
   password: '',
-  role: 'learner'
+  role: 'learner',
+  skills: '',
+  pricePerSession: '',
+  bio: ''
 });
+
 
 
   const navigate = useNavigate();
@@ -60,17 +64,8 @@ function Signup() {
       <div className="container">
         <h1>Signup</h1>
         <form onSubmit={handleSignup}>
-          <div>
-  <label htmlFor="role">Role</label>
-  <select
-    name="role"
-    value={signupInfo.role}
-    onChange={handleChange}
-  >
-    <option value="learner">Learner</option>
-    <option value="expert">Expert</option>
-  </select>
-</div>
+         
+
 
           <div>
             <label htmlFor="name">Name</label>
@@ -103,6 +98,53 @@ function Signup() {
               value={signupInfo.password}
             />
           </div>
+          <div>
+  <label htmlFor='role'>Role</label>
+  <select
+    name='role'
+    value={signupInfo.role}
+    onChange={handleChange}
+  >
+    <option value='learner'>Learner</option>
+    <option value='expert'>Expert</option>
+  </select>
+</div>
+
+{signupInfo.role === 'expert' && (
+  <>
+    <div>
+      <label htmlFor='skills'>Skills (comma separated)</label>
+      <input
+        onChange={handleChange}
+        type='text'
+        name='skills'
+        placeholder='e.g. React, Hooks, JavaScript'
+        value={signupInfo.skills}
+      />
+    </div>
+    <div>
+      <label htmlFor='pricePerSession'>Price per session (₹)</label>
+      <input
+        onChange={handleChange}
+        type='number'
+        name='pricePerSession'
+        placeholder='e.g. 400'
+        value={signupInfo.pricePerSession}
+      />
+    </div>
+    <div>
+      <label htmlFor='bio'>Short bio</label>
+      <input
+        onChange={handleChange}
+        type='text'
+        name='bio'
+        placeholder='e.g. Frontend dev, 3+ years React'
+        value={signupInfo.bio}
+      />
+    </div>
+  </>
+)}
+
           <button type="submit">Signup</button>
           <span>
             Already have an account ?

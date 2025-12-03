@@ -8,10 +8,29 @@ const UserModel = require("../Models/User");
 const signup = async (req, res) => {
     console.log("HIT /auth/signup", req.body);   // Log request arriving
     try {
-        const { name, email, password, role = 'learner' } = req.body;
+    const { name, email, password, role = 'learner', skills, pricePerSession, bio } = req.body;
         const user = await UserModel.findOne({ email });
         // ...
-        const userModel = new UserModel({ name, email, password, role });
+        
+        let skillsArray = [];
+if (skills && typeof skills === 'string') {
+  skillsArray = skills
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const userModel = new UserModel({
+  name,
+  email,
+  password,
+  role,
+  skills: skillsArray,
+  pricePerSession: pricePerSession ? Number(pricePerSession) : undefined,
+  bio
+});
+
+
 
         userModel.password = await bcrypt.hash(password, 10);
         await userModel.save();

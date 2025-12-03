@@ -7,11 +7,14 @@ function Home() {
   const [loggedInUser, setLoggedInUser] = useState('');
   const [experts, setExperts] = useState([]);
   const [doubt, setDoubt] = useState('');
+  const [role, setRole] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoggedInUser(localStorage.getItem('loggedInUser') || '');
-  }, []);
+  setLoggedInUser(localStorage.getItem('loggedInUser') || '');
+  setRole(localStorage.getItem('role') || '');
+}, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -79,16 +82,29 @@ function Home() {
       <div className="xpert-container">
         {/* Top bar */}
         <div className="xpert-topbar">
-          <div className="xpert-logo">XpertLink</div>
-          <div className="xpert-topbar-right">
-            <span className="xpert-username">
-              {loggedInUser ? `Hi, ${loggedInUser}` : 'Learner'}
-            </span>
-            <button className="xpert-logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </div>
+  <div className="xpert-logo">XpertLink</div>
+  <div className="xpert-topbar-right">
+    <span className="xpert-username">
+      {loggedInUser ? `Hi, ${loggedInUser}` : 'Learner'}
+      {role === 'expert' ? ' (Expert)' : ''}
+    </span>
+
+    {role === 'expert' && (
+      <button
+        className="xpert-logout-btn"
+        style={{ marginRight: '8px' }}
+        onClick={() => navigate('/expert-dashboard')}
+      >
+        Expert dashboard
+      </button>
+    )}
+
+    <button className="xpert-logout-btn" onClick={handleLogout}>
+      Logout
+    </button>
+  </div>
+</div>
+
 
         {/* Header hero */}
         <header className="xpert-header">

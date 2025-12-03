@@ -4,7 +4,9 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const AuthRouter = require('./Routes/AuthRouter');
 const ProductRouter = require('./Routes/ProductRouter');
-const ExpertRouter = require('./Routes/ExpertRouter'); // if you have it
+const ExpertRouter = require('./Routes/ExpertRouter'); 
+const SessionRouter = require('./Routes/SessionRouter');
+
 
 require('dotenv').config();
 require('./Models/db');
@@ -24,9 +26,13 @@ app.get('/ping', (req, res) => {
   res.send('PONG');
 });
 
+
+
 app.use('/auth', AuthRouter);
 app.use('/products', ProductRouter);
 app.use('/experts', ExpertRouter); // if using experts
+app.use('/sessions', SessionRouter);
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);

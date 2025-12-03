@@ -5,10 +5,18 @@ const signupValidation = (req, res, next) => {
     name: Joi.string().min(3).max(100).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(4).max(100).required(),
-    role: Joi.string().valid('learner', 'expert').default('learner')
+    role: Joi.string().valid('learner', 'expert').default('learner'),
+
+    // 🔽 these are for experts, but it's okay if learner sends empty
+    skills: Joi.string().allow('', null),              // comma separated string
+    pricePerSession: Joi.number().min(0).optional(),   // e.g. 400
+    bio: Joi.string().max(300).allow('', null)         // short description
   });
 
-  const { error } = schema.validate(req.body, { abortEarly: true });
+  const { error } = schema.validate(req.body, {
+    abortEarly: true
+  });
+
   if (error) {
     return res.status(400).json({
       message: 'Bad request',
@@ -22,11 +30,12 @@ const loginValidation = (req, res, next) => {
   const schema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(4).max(100).required()
-    // ❌ no name here
-    // ❌ no role here
   });
 
-  const { error } = schema.validate(req.body, { abortEarly: true });
+  const { error } = schema.validate(req.body, {
+    abortEarly: true
+  });
+
   if (error) {
     return res.status(400).json({
       message: 'Bad request',

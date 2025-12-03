@@ -19,6 +19,22 @@ const UserSchema = new Schema({
     type: String,
     enum: ['learner', 'expert'],
     default: 'learner'
+  },
+  // 🔽 extra fields mainly for experts
+  skills: {
+    type: [String],       // e.g. ["react", "hooks", "javascript"]
+    default: []
+  },
+  bio: {
+    type: String
+  },
+  pricePerSession: {
+    type: Number,
+    default: 400
+  },
+  rating: {
+    type: Number,
+    default: 5.0
   }
 });
 

@@ -6,73 +6,124 @@ function ExpertDashboard() {
   const [expertName, setExpertName] = useState('');
   const [role, setRole] = useState('');
 
-  // In real app these will come from backend
-  const [stats] = useState({
-    monthlyIncome: 18250,
-    totalSessions: 42,
-    upcomingSessions: 3,
+  const [stats, setStats] = useState({
+    monthlyIncome: 0,
+    totalSessions: 0,
+    upcomingSessions: 0,
     rating: 4.8
   });
 
-  const [upcomingSessions] = useState([
-    {
-      id: 'S-1042',
-      learner: 'Rohan Sharma',
-      topic: 'React useEffect loop',
-      time: 'Today, 7:30 PM',
-      duration: '45 min',
-      status: 'Scheduled'
-    },
-    {
-      id: 'S-1043',
-      learner: 'Ananya Gupta',
-      topic: 'DP on trees doubt',
-      time: 'Tomorrow, 5:00 PM',
-      duration: '60 min',
-      status: 'Scheduled'
-    },
-    {
-      id: 'S-1044',
-      learner: 'Ishita Verma',
-      topic: 'MongoDB aggregation help',
-      time: 'Tomorrow, 8:00 PM',
-      duration: '30 min',
-      status: 'Scheduled'
-    }
-  ]);
+  const [upcomingSessions, setUpcomingSessions] = useState([]);
+  const [pastSessions, setPastSessions] = useState([]);
 
-  const [pastSessions] = useState([
-    {
-      id: 'S-1039',
-      learner: 'Aditya Joshi',
-      topic: 'CSS layout fix',
-      time: '2 days ago',
-      earnings: 450,
-      rating: 5.0
-    },
-    {
-      id: 'S-1038',
-      learner: 'Meera Nair',
-      topic: 'Binary search edge cases',
-      time: '3 days ago',
-      earnings: 400,
-      rating: 4.5
-    },
-    {
-      id: 'S-1037',
-      learner: 'Harsh Patel',
-      topic: 'REST API debugging',
-      time: '5 days ago',
-      earnings: 500,
-      rating: 4.8
+  const API_BASE = 'http://localhost:8080'; // force backend
+
+  const fetchSessions = async () => {
+    try {
+      const url = `${API_BASE}/sessions/mine`;
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          // IMPORTANT: your middleware expects the raw token, not "Bearer xx"
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const text = await response.text();
+      console.log('Expert sessions raw:', text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error('Could not parse /sessions/mine JSON');
+        return;
+      }
+
+      console.log('Expert sessions JSON:', result);
+
+      if (!response.ok || !result.success) {
+        console.error('Sessions API error:', result);
+        return;
+      }
+
+      const all = result.sessions || [];
+
+      const upcoming = all.filter(
+        (s) => s.status === 'pending' || s.status === 'accepted'
+      );
+      const past = all.filter(
+        (s) => s.status === 'completed' || s.status === 'rejected'
+      );
+
+      setUpcomingSessions(upcoming);
+      setPastSessions(past);
+
+      // simple stats (earnings from completed sessions)
+      const totalEarnings = past.reduce(
+        (sum, s) => sum + (s.price || 400),
+        0
+      );
+      setStats({
+        monthlyIncome: totalEarnings,
+        totalSessions: all.length,
+        upcomingSessions: upcoming.length,
+        rating: 4.8
+      });
+    } catch (err) {
+      console.error('Fetch sessions error:', err);
     }
-  ]);
+  };
+
+  const handleAcceptSession = async (sessionId) => {
+    try {
+      const url = `${API_BASE}/sessions/${sessionId}/accept`;
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token, // again: no "Bearer"
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const text = await response.text();
+      console.log('Accept session raw:', text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error('Could not parse accept-session JSON');
+        return;
+      }
+
+      console.log('Accept session JSON:', result);
+
+      if (response.ok && result.success) {
+        handleSuccess('Session accepted');
+        fetchSessions(); // refresh list
+      }
+    } catch (err) {
+      console.error('Accept session error:', err);
+    }
+  };
 
   useEffect(() => {
     const name = localStorage.getItem('loggedInUser') || 'Expert';
     const storedRole = localStorage.getItem('role') || '';
     setExpertName(name);
     setRole(storedRole);
+
+    fetchSessions(); // initial load
+
+    // simple polling every 10 seconds
+    const intervalId = setInterval(fetchSessions, 10000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleCopyProfileLink = () => {
@@ -83,7 +134,7 @@ function ExpertDashboard() {
   return (
     <>
       <div className="xpert-container">
-        {/* Top bar same style as learner home */}
+        {/* Top bar */}
         <div className="xpert-topbar">
           <div className="xpert-logo">XpertLink</div>
           <div className="xpert-topbar-right">
@@ -114,11 +165,15 @@ function ExpertDashboard() {
             <div className="xpert-card expert-stat-card">
               <div className="expert-stat-label">This month&apos;s income</div>
               <div className="expert-stat-value">₹{stats.monthlyIncome}</div>
-              <div className="expert-stat-sub">Across {stats.totalSessions} sessions</div>
+              <div className="expert-stat-sub">
+                Across {stats.totalSessions} sessions
+              </div>
             </div>
             <div className="xpert-card expert-stat-card">
               <div className="expert-stat-label">Upcoming sessions</div>
-              <div className="expert-stat-value">{stats.upcomingSessions}</div>
+              <div className="expert-stat-value">
+                {stats.upcomingSessions}
+              </div>
               <div className="expert-stat-sub">Next 24 hours</div>
             </div>
             <div className="xpert-card expert-stat-card">
@@ -135,32 +190,49 @@ function ExpertDashboard() {
         <section className="xpert-section">
           <h2 className="xpert-section-title">Upcoming sessions</h2>
           {upcomingSessions.length === 0 ? (
-            <p className="expert-empty-text">No upcoming sessions scheduled.</p>
+            <p className="expert-empty-text">
+              No upcoming sessions scheduled.
+            </p>
           ) : (
             <div className="expert-table">
               <div className="expert-table-header">
                 <span>Session ID</span>
                 <span>Learner</span>
                 <span>Topic</span>
-                <span>Time</span>
-                <span>Duration</span>
+                <span>When</span>
+                <span>Price</span>
                 <span>Status</span>
               </div>
+
               {upcomingSessions.map((s) => (
-                <div key={s.id} className="expert-table-row">
-                  <span>{s.id}</span>
-                  <span>{s.learner}</span>
+                <div key={s._id} className="expert-table-row">
+                  <span>{s._id.slice(-6)}</span>
+                  <span>{s.learnerId?.name || 'Learner'}</span>
                   <span>{s.topic}</span>
-                  <span>{s.time}</span>
-                  <span>{s.duration}</span>
-                  <span className="expert-status-badge">{s.status}</span>
+                  <span>{new Date(s.createdAt).toLocaleString()}</span>
+                  <span>{s.price ? `₹${s.price}` : '-'}</span>
+                  <span>
+                    {s.status === 'pending' ? (
+                      <button
+                        className="expert-status-badge"
+                        style={{ background: '#fef9c3', color: '#854d0e' }}
+                        onClick={() => handleAcceptSession(s._id)}
+                      >
+                        Accept
+                      </button>
+                    ) : (
+                      <span className="expert-status-badge">
+                        {s.status}
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* Past sessions & earnings */}
+        {/* Past sessions */}
         <section className="xpert-section">
           <h2 className="xpert-section-title">Recent sessions</h2>
           {pastSessions.length === 0 ? (
@@ -173,16 +245,16 @@ function ExpertDashboard() {
                 <span>Topic</span>
                 <span>When</span>
                 <span>Earnings</span>
-                <span>Rating</span>
+                <span>Status</span>
               </div>
               {pastSessions.map((s) => (
-                <div key={s.id} className="expert-table-row">
-                  <span>{s.id}</span>
-                  <span>{s.learner}</span>
+                <div key={s._id} className="expert-table-row">
+                  <span>{s._id.slice(-6)}</span>
+                  <span>{s.learnerId?.name || 'Learner'}</span>
                   <span>{s.topic}</span>
-                  <span>{s.time}</span>
-                  <span>₹{s.earnings}</span>
-                  <span>⭐ {s.rating.toFixed(1)}</span>
+                  <span>{new Date(s.updatedAt || s.createdAt).toLocaleString()}</span>
+                  <span>₹{s.price || 400}</span>
+                  <span className="expert-status-badge">{s.status}</span>
                 </div>
               ))}
             </div>
