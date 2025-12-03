@@ -40,11 +40,17 @@ function Login() {
   handleSuccess(message);
   localStorage.setItem('token', jwtToken);
   localStorage.setItem('loggedInUser', name);
-  localStorage.setItem('role', role);   // 🔹 store expert / learner here
+  localStorage.setItem('role', role);
+
   setTimeout(() => {
-    navigate('/home');
+    if (role === 'expert') {
+      navigate('/expert-dashboard');
+    } else {
+      navigate('/home');
+    }
   }, 1000);
 }
+
 
       console.log(result);
     } catch (err) {

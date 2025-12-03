@@ -11,9 +11,17 @@ function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-  setLoggedInUser(localStorage.getItem('loggedInUser') || '');
-  setRole(localStorage.getItem('role') || '');
-}, []);
+  const user = localStorage.getItem('loggedInUser') || '';
+  const storedRole = localStorage.getItem('role') || '';
+
+  setLoggedInUser(user);
+  setRole(storedRole);
+
+  if (storedRole === 'expert') {
+    navigate('/expert-dashboard');
+  }
+}, [navigate]);
+
 
 
   const handleLogout = () => {

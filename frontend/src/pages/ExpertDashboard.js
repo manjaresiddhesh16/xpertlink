@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
-import { handleSuccess } from '../utils';
+import { handleSuccess, handleError } from '../utils';
 
 function ExpertDashboard() {
   const [expertName, setExpertName] = useState('');
@@ -10,13 +10,13 @@ function ExpertDashboard() {
     monthlyIncome: 0,
     totalSessions: 0,
     upcomingSessions: 0,
-    rating: 4.8
+    rating: 4.8,
   });
 
   const [upcomingSessions, setUpcomingSessions] = useState([]);
   const [pastSessions, setPastSessions] = useState([]);
 
-  const API_BASE = 'http://localhost:8080'; // force backend
+  const API_BASE = 'http://localhost:8080';
 
   const fetchSessions = async () => {
     try {
@@ -26,7 +26,6 @@ function ExpertDashboard() {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          // IMPORTANT: your middleware expects the raw token, not "Bearer xx"
           'Authorization': token,
           'Content-Type': 'application/json',
         },
@@ -43,14 +42,13 @@ function ExpertDashboard() {
         return;
       }
 
-      console.log('Expert sessions JSON:', result);
-
       if (!response.ok || !result.success) {
         console.error('Sessions API error:', result);
         return;
       }
 
       const all = result.sessions || [];
+      console.log('Sessions parsed:', all);
 
       const upcoming = all.filter(
         (s) => s.status === 'pending' || s.status === 'accepted'
@@ -62,7 +60,6 @@ function ExpertDashboard() {
       setUpcomingSessions(upcoming);
       setPastSessions(past);
 
-      // simple stats (earnings from completed sessions)
       const totalEarnings = past.reduce(
         (sum, s) => sum + (s.price || 400),
         0
@@ -71,14 +68,23 @@ function ExpertDashboard() {
         monthlyIncome: totalEarnings,
         totalSessions: all.length,
         upcomingSessions: upcoming.length,
-        rating: 4.8
+        rating: 4.8,
       });
     } catch (err) {
       console.error('Fetch sessions error:', err);
     }
   };
 
+  const buildMeetingLink = (session) => {
+    // use backend value if present, otherwise fallback pattern
+    return (
+      session.meetingLink ||
+      `https://meet.jit.si/xpertlink-${session._id}`
+    );
+  };
+
   const handleAcceptSession = async (sessionId) => {
+    console.log('Clicked ACCEPT for', sessionId);
     try {
       const url = `${API_BASE}/sessions/${sessionId}/accept`;
       const token = localStorage.getItem('token');
@@ -86,7 +92,7 @@ function ExpertDashboard() {
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
-          'Authorization': token, // again: no "Bearer"
+          'Authorization': token,
           'Content-Type': 'application/json',
         },
       });
@@ -102,14 +108,58 @@ function ExpertDashboard() {
         return;
       }
 
-      console.log('Accept session JSON:', result);
-
       if (response.ok && result.success) {
         handleSuccess('Session accepted');
-        fetchSessions(); // refresh list
+        const session = result.session;
+
+        if (session) {
+          const link = buildMeetingLink(session);
+          console.log('Opening meeting link for expert:', link);
+          window.open(link, '_blank', 'noopener,noreferrer');
+        }
+
+        fetchSessions();
+      } else {
+        handleError(result.message || 'Failed to accept session');
       }
     } catch (err) {
       console.error('Accept session error:', err);
+    }
+  };
+
+  const handleRejectSession = async (sessionId) => {
+    console.log('Clicked REJECT for', sessionId);
+    try {
+      const url = `${API_BASE}/sessions/${sessionId}/reject`;
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const text = await response.text();
+      console.log('Reject session raw:', text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error('Could not parse reject-session JSON');
+        return;
+      }
+
+      if (response.ok && result.success) {
+        handleSuccess('Session rejected');
+        fetchSessions();
+      } else {
+        handleError(result.message || 'Failed to reject session');
+      }
+    } catch (err) {
+      console.error('Reject session error:', err);
     }
   };
 
@@ -119,15 +169,13 @@ function ExpertDashboard() {
     setExpertName(name);
     setRole(storedRole);
 
-    fetchSessions(); // initial load
+    fetchSessions();
 
-    // simple polling every 10 seconds
     const intervalId = setInterval(fetchSessions, 10000);
     return () => clearInterval(intervalId);
   }, []);
 
   const handleCopyProfileLink = () => {
-    // Fake copy for demo; later you can generate a real link
     handleSuccess('Profile link copied to clipboard (demo)');
   };
 
@@ -201,7 +249,7 @@ function ExpertDashboard() {
                 <span>Topic</span>
                 <span>When</span>
                 <span>Price</span>
-                <span>Status</span>
+                <span>Actions</span>
               </div>
 
               {upcomingSessions.map((s) => (
@@ -211,16 +259,39 @@ function ExpertDashboard() {
                   <span>{s.topic}</span>
                   <span>{new Date(s.createdAt).toLocaleString()}</span>
                   <span>{s.price ? `₹${s.price}` : '-'}</span>
-                  <span>
-                    {s.status === 'pending' ? (
-                      <button
-                        className="expert-status-badge"
-                        style={{ background: '#fef9c3', color: '#854d0e' }}
-                        onClick={() => handleAcceptSession(s._id)}
-                      >
-                        Accept
-                      </button>
-                    ) : (
+
+                  <span style={{ display: 'flex', gap: '8px' }}>
+                    {s.status === 'pending' && (
+                      <>
+                        <button
+                          type="button"
+                          className="expert-status-badge"
+                          style={{
+                            background: '#dcfce7',
+                            color: '#166534',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleAcceptSession(s._id)}
+                        >
+                          Accept & start call
+                        </button>
+
+                        <button
+                          type="button"
+                          className="expert-status-badge"
+                          style={{
+                            background: '#fee2e2',
+                            color: '#991b1b',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleRejectSession(s._id)}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+
+                    {s.status !== 'pending' && (
                       <span className="expert-status-badge">
                         {s.status}
                       </span>

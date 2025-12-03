@@ -32,6 +32,7 @@ router.post('/', ensureAuthenticated, async (req, res) => {
       doubtText,
       scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
       price: expert.price || undefined // only if you add price on user later
+      // meetingLink will be added when expert accepts
     });
 
     await session.save();
@@ -81,7 +82,7 @@ router.get('/mine', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// PATCH /sessions/:id/accept  -> expert accepts a session
+// PATCH /sessions/:id/accept  -> expert accepts a session and gets a meeting link
 router.patch('/:id/accept', ensureAuthenticated, async (req, res) => {
   try {
     const sessionId = req.params.id;
@@ -111,7 +112,14 @@ router.patch('/:id/accept', ensureAuthenticated, async (req, res) => {
       });
     }
 
+    // update status
     session.status = 'accepted';
+
+    // 🔹 generate meeting link if not already present
+    if (!session.meetingLink) {
+      session.meetingLink = `https://meet.jit.si/xpertlink-${session._id}`;
+    }
+
     await session.save();
 
     res.status(200).json({
